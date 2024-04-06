@@ -7,6 +7,7 @@
 
 ## 1. Access data and install packages
 ```
+### import packages for data access and analysis
 from fbri.private.sql.query import execute
 from svinfer.linear_model import LinearRegression
 from svinfer.processor import DataFrameProcessor
@@ -65,7 +66,7 @@ FROM
 dfneg2 = execute(sql)
 ```
 
-## 3. retrieve top-shared 5000 URLs with political_page_affinity (user political affinity group) = minus 1
+## 3. Retrieve top-shared 5000 URLs with political_page_affinity (user political affinity group) = -1
 ```
 target_domain = f"""
 WITH RANK AS 
@@ -108,8 +109,7 @@ FROM
 dfneg1 = execute(sql)
 ```
 
-
-## 4. retrieve top-shared 5000 URLs with political_page_affinity (user political affinity group) = zero
+## 4. Retrieve top-shared 5000 URLs with political_page_affinity (user political affinity group) = 0
 ```
 target_domain = f"""
 WITH RANK AS 
@@ -153,7 +153,7 @@ dfzero = execute(sql)
 ```
 
 
-## 5. retrieve top-shared 5000 URLs with political_page_affinity (user political affinity group) = plus 1
+## 5. Retrieve top-shared 5000 URLs with political_page_affinity (user political affinity group) = -1
 ```
 target_domain = f"""
 WITH RANK AS 
@@ -196,7 +196,7 @@ FROM
 dfpos1 = execute(sql)
 ```
 
-## 6. retrieve top-shared 5000 URLs with political_page_affinity (user political affinity group) = plus 2
+## 6. Retrieve top-shared 5000 URLs with political_page_affinity (user political affinity group) = +2
 ```
 target_domain = f"""
 WITH RANK AS 
@@ -239,30 +239,30 @@ FROM
 dfpos2 = execute(sql)
 ```
 
-## 7. combine all the 5 political_page_affinity groups
+## 7. Combine all 5 political_page_affinity groups
 ```
 frames = [dfneg2, dfneg1, dfzero, dfpos1, dfpos2]
 df_all = pd.concat(frames)
 ```
 
-## 8. group df_all by parent domain but also retain political affinity values
+## 8. Group df_all by parent domain but also retain political affinity values
 ```
 df_parent = pd.DataFrame({'count_url' : df_all.groupby(['parent_domain','political_page_affinity']).size(), 'total_clicks': df_all.groupby(['parent_domain','political_page_affinity'])['clicks'].sum(), 'total_shares': df_all.groupby(['parent_domain','political_page_affinity'])['likes'].sum(), 'total_sharewoclicks'].sum(), }).reset_index()
 ```
 
-## 9. calculate total_shares for each domain then attach to df_parent
+## 9. Calculate total_shares for each domain then attach to df_parent
 ```
 df_shares = df_parent.groupby('parent_domain')['total_shares']
 df_parent['sum_shares']=df_shares.transform('sum')
 ```
 
-## 10. calculate weighted affinity for each domain
+## 10. Calculate weighted affinity for each domain
 ```
 weighted_affinity = df_parent.groupby('parent_domain').apply(lambda x: (x['political_page_affinity']*(x['total_shares']/x['sum_shares'])).sum()).reset_index()
 weighted_affinity.columns = ['parent_domain', 'weighted_affinity']
 ```
 
-## 11. save data for analysis, which have 25000 rows
+## 11. Save data for analysis, which has 25000 rows
 ```
 result_affinity = pd.merge(df_parent, weighted_affinity, on='parent_domain')
 result_affinity["needed_shares"] = 1.578 * ((15805440*result_affinity["count_url"])**(0.5))
@@ -270,7 +270,7 @@ result_affinity["extra_shares"] = result_affinity["sum_shares"] - result_affinit
 result_affinity.to_csv(r'top5000_byaffinity.csv')
 ```
 
-## 12. exclude domains without enough shares, missing political page affinity and an outlier
+## 12. Exclude domains without enough shares, missing political page affinity, and an outlier
 ```
 df = pd.read_csv('top5000_byaffinity.csv')
 df = df[df['extra_shares'] > 0]
@@ -282,7 +282,7 @@ df = df[df['parent_domain'] != 'https://urldefense.com/v3/__http://whicdn.com__;
 df = df[df['parent_domain'] != 'https://urldefense.com/v3/__http://youtube.com__;!!DLa72PTfQgg!MLe3jtaenb_GC6RMaN3bUo_O892Xch2Ko2ASCTjE6eKc6g5uPxPNiyJSrQkw0TvHZuN_4NjN0MS5RI8yDfE$ ']
 ```
 
-## 13. analyze of affinity alignment effects on SwoCs
+## 13. Analysis of affinity alignment effects on SwoCs
 ```
 x_columns = ["affinity_alignment"]
 y_column = "total_sharewoclicks"
@@ -298,7 +298,7 @@ print(f"beta_tilde's variance-covariance matrix: \n{model2.beta_vcov}")
 print(f"beta_tilde's residual variance is: \n{model2.sigma_sq}")
 ```
 
-## 14. go back to #11 and group 5 political affinity groups
+## 14. Go back to #11 and group 5 political affinity groups
 ```
 df = pd.DataFrame({'count_domain': df.groupby('parent_domain').size(),
                    'weighted_affinity': df.groupby('parent_domain')['weighted_affinity'].first(),
@@ -309,7 +309,7 @@ df = pd.DataFrame({'count_domain': df.groupby('parent_domain').size(),
 df["weighted_affinity2"] = df["weighted_affinity"] * df["weighted_affinity"]
 ```
 
-## 15. analyze weighted content affinity effects on SwoCs
+## 15. Analyze weighted content affinity effects on SwoCs
 ```
 x_columns = ["weighted_affinity", "weighted_affinity2"]
 y_column = "share_without_clicks"
@@ -328,11 +328,13 @@ print(f"beta_tilde's residual variance is: \n{model.sigma_sq}")
 
 # B1. POLITICAL CLASSIFICATION OF URLS (All URLs data classified of political vs. non-political content for each year, utilizing the below codes via Python.)
 
-## 1. access data and install packages
+## 1. Access data and install packages
 ```
 from fbri.private.sql.query import execute
 import pandas as pd
 import csv
+
+### Accessible database and tables
 database = "fbri_prod_private"
 attributes_table = "erc_condor_url_attributes_dp_final_v3"
 breakdowns_table = "erc_condor_url_breakdowns_dp_clean_partitioned_v2"
@@ -529,12 +531,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 import csv
 import seaborn as sns
+
+### import packages for data access and analysis
 database = "fbri_prod_private"
 attributes_table = "erc_condor_url_attributes_dp_final_v3"
 breakdowns_table = "erc_condor_url_breakdowns_dp_clean_partitioned_v2"
 ```
 
-## 2. select data from May to Nov with political_page_affinity (user political affinity group) = minus 2 for each year (of 2017, 2018, 2019, 2020 run separately iterated)
+## 2. Select data from May to Nov with political_page_affinity (user political affinity group) = -2 for each year (of 2017, 2018, 2019, 2020 run separately iterated)
 ```
 sql = f"""
 WITH May_Nov_US_URLs AS (
