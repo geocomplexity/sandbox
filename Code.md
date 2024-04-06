@@ -520,7 +520,7 @@ df_pol = pd.read_csv(r'2017MayNov_pol.tsv', delimiter = '\t', header = None, nam
 
 # B2. URL-LEVEL DATA PREPARATION AND MAJOR ANALYSIS (All URL-level data were analyzed via Python, based on the following codes through 19 steps)
 
-## 1. access data and install packages
+## 1. Access data and install packages
 ```
 from fbri.private.sql.query import execute
 from svinfer.linear_model import LinearRegression
@@ -562,7 +562,7 @@ GROUP BY urlbd.url_rid
 dfneg2 = execute(sql)
 ```
 
-## https://urldefense.com/v3/__http://3.select__;!!DLa72PTfQgg!MLe3jtaenb_GC6RMaN3bUo_O892Xch2Ko2ASCTjE6eKc6g5uPxPNiyJSrQkw0TvHZuN_4NjN0MS5JjsD05U$  data from May to Nov with political_page_affinity (user political affinity group) = minus 1 for each year (of 2017, 2018, 2019, 2020 run separately iterated)
+## Select data from May to Nov with political_page_affinity (user political affinity group) = -1 for each year (of 2017, 2018, 2019, 2020 run separately iterated)
 ```
 sql = f"""
 WITH May_Nov_US_URLs AS (
@@ -586,7 +586,7 @@ GROUP BY urlbd.url_rid
 dfneg1 = execute(sql)
 ```
 
-## 4. select data from May to Nov with political_page_affinity (user political affinity group) = zero for each year (of 2017, 2018, 2019, 2020 run separately iterated)
+## 4. Select data from May to Nov with political_page_affinity (user political affinity group) = 0 for each year (of 2017, 2018, 2019, 2020 run separately iterated)
 ```
 sql = f"""
 WITH May_Nov_US_URLs AS (
@@ -610,7 +610,7 @@ GROUP BY urlbd.url_rid
 dfzero = execute(sql)
 ```
 
-## 5. select data from May to Nov with political_page_affinity (user political affinity group) = plus 1 for each year (of 2017, 2018, 2019, 2020 run separately iterated)
+## 5. Select data from May to Nov with political_page_affinity (user political affinity group) = +1 for each year (of 2017, 2018, 2019, 2020 run separately iterated)
 ```
 sql = f"""
 WITH May_Nov_US_URLs AS (
@@ -634,7 +634,7 @@ GROUP BY urlbd.url_rid
 dfpos1 = execute(sql)
 ```
 
-## 6. select data from May to Nov with political_page_affinity (user political affinity group) = plus 2 for each year (of 2017, 2018, 2019, 2020 run separately iterated)
+## 6. Select data from May to Nov with political_page_affinity (user political affinity group) = +2 for each year (of 2017, 2018, 2019, 2020 run separately iterated)
 ```
 sql = f"""
 WITH May_Nov_US_URLs AS (
@@ -658,19 +658,19 @@ GROUP BY urlbd.url_rid
 dfpos2 = execute(sql)
 ```
 
-## 7. combine all URLs from 5 user political affinities
+## 7. Combine all URLs from 5 user political affinities
 ```
 frames = [dfneg2, dfneg1, dfzero, dfpos1, dfpos2]
 df_all = pd.concat(frames)
 ```
 
-## 8. calculate sum_shares for each URL to calculate weighted political affinity
+## 8. Calculate sum_shares for each URL to calculate the weighted political affinity
 ```
 df_shares = df_all.groupby('url_rid')['shares']
 df_all['sum_shares']=df_shares.transform('sum')
 ```
 
-## 9. group by URL and calculate weighted political affinity per URL
+## 9. Group by URL and calculate weighted political affinity per URL
 ```
 df_url = pd.DataFrame({'clicks': df_all.groupby('url_rid')['clicks'].sum(),
                    'shares': df_all.groupby('url_rid')['shares'].sum(),
@@ -680,45 +680,45 @@ weighted_affinity = df_all.groupby('url_rid').apply(lambda x: (x['political_page
 weighted_affinity.columns = ['url_rid', 'weighted_affinity']
 ```
 
-## 10. create data with url aggregates and weighted affinity combined
+## 10. Create data with URL aggregates and weighted affinity combined
 ```
 result = pd.merge(df_url, weighted_affinity, on='url_rid')
 ```
 
-## 11. read the classified URL file and merge with result
+## 11. Read the classified URL file and merge it with the result
 ```
 df_pol = pd.read_csv(r'2017MayNov_pol.tsv', delimiter = '\t', header = None, names = ['url_rid','SwoC','titleNblurb','political'])
 df_combined = pd.merge(result, df_pol, on='url_rid')
 ```
 
-## 12. then exclude URLs below 2395 (not meeting size requirements for noise adjustment)
+## 12. Exclude URLs below 2395 (not meeting size requirements for noise adjustment)
 ```
 df_combined_filtered = df_combined[df_combined['shares'] >2395]
 ```
 
-## 13. create data divided by 5 affinity levels
+## 13. Create data divided by 5 affinity levels
 ```
 result_affinity = pd.merge(df_all, weighted_affinity, on='url_rid')
 ```
 
-## 14. read the classified URL file and merge with df_all with all user affinity
+## 14. Read the classified URL file and merge it with df_all with all user affinity
 ```
 df_combined_affinity = pd.merge(result_affinity, df_pol, on='url_rid')
 ```
 
-## 15. again, exclude URLs below 2395 (not meeting size requirements for noise adjustment)s
+## 15. Exclude URLs below 2395 (not meeting size requirements for noise adjustment)s
 ```
 df_combined_affinity_filtered = df_combined_affinity[df_combined_affinity['sum_shares'] > 2395
 ```
 
-## 16. check URL count for each political classifier
+## 16. Check the URL count for each political classifier
 ```
 df = df_combined_filtered
 df = pd.DataFrame({'count' : df.groupby('political').size(), 
                   }).reset_index()
 ```
 
-## 17. get each user affinity aggregates for political content (adjust political == 0 for non-political content)
+## 17. Get each user affinity aggregates for political content (adjust political == 0 for non-political content)
 ```
 from numpy import sqrt
 from numpy import power
@@ -745,7 +745,7 @@ df['clicks/count'] = round(df['clicks']/df['count'])
 df['percentage'] = round(df['share_without_clicks']/df['shares']*100,2)
 ```
 
-## 18. calculate a) weighted affinity^2, b) filter -2<weighted affinity<2, and c) only include political URLs to run quadratic regression model with x = weighted affinity, x2= weighted affinity^2, y = SwoC 
+## 18. Calculate a) weighted affinity^2, b) filter -2<weighted affinity<2, and c) only include political URLs to run quadratic regression model with x = weighted affinity, x2= weighted affinity^2, y = SwoC 
 ```
 df = df_combined_filtered
 df['weighted_affinity2'] = df['weighted_affinity']*df['weighted_affinity'] 
@@ -767,7 +767,7 @@ print(f"beta_tilde's variance-covariance matrix: \n{model.beta_vcov}")
 print(f"beta_tilde's residual variance is: \n{model.sigma_sq}")
 ```
 
-## 19. this time, a) calculate “alignment”, b) filter -2<weighted affinity<2, and c) only include political content to run a single linear regression model with x = alignment and y = SwoC
+## 19. a) calculate “alignment”, b) filter -2<weighted affinity<2, and c) only include political content to run a single linear regression model with x = alignment and y = SwoC
 ```
 df = df_combined_affinity_filtered
 df['alignment'] = abs(df['political_page_affinity']-df['weighted_affinity'])
@@ -791,7 +791,7 @@ print(f"beta_tilde's residual variance is: \n{model2.sigma_sq}")
 
 # C. TPFC RATED URLS DATA PREPARATION AND MAJOR ANALYSIS (All TPFC-rated URLs were filtered, politically classified, and analyzed utilizing the below codes via Python.)
 
-## 1. access data and install packages
+## 1. Access data and install packages
 ```
 from fbri.private.sql.query import execute
 from svinfer.linear_model import LinearRegression
@@ -806,7 +806,7 @@ attributes_table = "erc_condor_url_attributes_dp_final_v3"
 breakdowns_table = "erc_condor_url_breakdowns_dp_clean_partitioned_v2"
 ```
 
-## 2. extract all tpfc_rated URLs
+## 2. Extract all tpfc_rated URLs
 ```
 sql = f"""
 WITH US_URLs AS (
@@ -835,7 +835,7 @@ GROUP BY urlbd.url_rid
 tpfc_year = execute(sql)
 ```
 
-## 3. add year and month data and split each year
+## 3. Add year and month data and split each year
 ```
 from datetime import datetime
 tpfc_year['year']= pd.to_datetime(tpfc_year['year_month']).dt.to_period('Y')
@@ -854,7 +854,7 @@ df_2020 = tpfc_year[tpfc_year['year'] == '2020']
 df_2020.to_csv(r'tpfc_2020.csv')
 ```
 
-## 4. prepare/process URL titles and blurbs for political classification for each year (this is a 2017 example that should run separate for yeah year)
+## 4. Prepare/process URL titles and blurbs for political classification for each year (this is a 2017 example that should run separately for yeah year)
 ```
 df = pd.read_csv('tpfc_2017.csv', delimiter = ',', error_bad_lines=False)
 df.to_csv('tpfc_2017_clean.tsv', sep='\t', index=False)
