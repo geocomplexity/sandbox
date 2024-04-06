@@ -16,14 +16,15 @@ import numpy as np
 import matplotlib.pyplot as plt
 import csv
 import seaborn as sns
-```
 
-## 2. Retrieve top-shared 5000 URLs with political_page_affinity (user political affinity group) = -2
-```
+### Accessible database and tables
 database = "fbri_prod_private"
 attributes_table = "erc_condor_url_attributes_dp_final_v3"
 breakdowns_table = "erc_condor_url_breakdowns_dp_clean_partitioned_v2"
 
+```
+## 2. Retrieve top-shared 5000 URLs with political_page_affinity (user political affinity group) = -2
+```
 target_domain = f"""
 WITH RANK AS 
 (SELECT parent_domain, COUNT(parent_domain) as frequency 
