@@ -286,7 +286,7 @@ df = df[df['parent_domain'] != 'https://urldefense.com/v3/__http://whicdn.com__;
 df = df[df['parent_domain'] != 'https://urldefense.com/v3/__http://youtube.com__;!!DLa72PTfQgg!MLe3jtaenb_GC6RMaN3bUo_O892Xch2Ko2ASCTjE6eKc6g5uPxPNiyJSrQkw0TvHZuN_4NjN0MS5RI8yDfE$ ']
 ```
 
-## 13. Conduct analysis of affinity alignment effects on SwoCs
+## 13. Analyze affinity alignment effects on SwoCs
 ```
 x_columns = ["affinity_alignment"]
 y_column = "total_sharewoclicks"
@@ -330,22 +330,26 @@ print(f"beta_tilde's residual variance is: \n{model.sigma_sq}")
 ```
 
 
-# B1. POLITICAL CLASSIFICATION OF URLS (All URLs data classified of political vs. non-political content for each year, utilizing the below codes via Python.)
+# B1. POLITICAL CLASSIFICATION OF URLS (All URLs data are classified as political or non-political content for each year.)
 
 ## 1. Access data and install packages
 ```
+### Import packages for data access and analysis
+### Meta specific libraries
 from fbri.private.sql.query import execute
+
 import pandas as pd
 import csv
 
-### Accessible database and tables
+### Accessible Meta database and tables
 database = "fbri_prod_private"
 attributes_table = "erc_condor_url_attributes_dp_final_v3"
 breakdowns_table = "erc_condor_url_breakdowns_dp_clean_partitioned_v2"
 ```
 
-## 2. retrieve text data from May to November URLs for each year (of 2017, 2018, 2019, 2020 run separately iterated)
+## 2. Retrieve text data from May to November URLs for each year (of 2017, 2018, 2019, 2020 run separately iterated)
 ```
+### Define query criteria
 sql = f"""
 WITH May_Nov_US_URLs AS (
 SELECT url_rid, share_title, share_main_blurb
@@ -364,19 +368,25 @@ WHERE urlbd.c='US' and urlbd.year_month > '2017-04' and urlbd.year_month < '2017
 GROUP BY urlbd.url_rid
 """
 
+### Save data to file as tab-separated values (TSV)
 df_blurbs = execute(sql)
 df_blurbs.to_csv('2017_blurbs_clean.tsv', sep='\t', index=False)
 ```
 
-## 3. prepare/process the combination of URL titles and blurbs into stems 
+## 3. Prepare/process the combination of URL titles and blurbs into stems 
 ```
+### Import Natural Language Toolkit (NLTK) libraries for text processing
 from nltk.corpus import stopwords
 from nltk.stem.wordnet import WordNetLemmatizer
 from nltk.stem import SnowballStemmer
+
 import string
 import re
 import pandas as pd
 
+### Function for text preprocessing:
+### Text cleaning by removing stop words, digits, and non ascii characters 
+### Keep stems
 def stem_prerpare(pathO, pathD):
     print("program starts ...")
     stop = set(stopwords.words('english'))
@@ -421,15 +431,19 @@ def stem_prerpare(pathO, pathD):
         oFile.write(mString)
     oFile.close()
     mFile.close()
+
+### Save cleaned data to file
 stem_prerpare('2017_blurbs_clean.tsv', '2017_blurbs_clean_stem.tsv')
 ```
 
-## 4. process political classification and save the classified URL files
+## 4. Classifier for political and non-political classification
 ```
 import sys
 import string
 import re
 
+### Utilize scikit-learn libraries
+### Add additional libraries for performance evaluation and visualization
 from sklearn import model_selection, preprocessing, linear_model, naive_bayes, metrics, svm
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 from sklearn import decomposition, ensemble
@@ -450,6 +464,7 @@ from nltk.tokenize import TreebankWordTokenizer
 from nltk.tokenize import word_tokenize
 from nltk.probability import FreqDist
 
+### Function for classification with the trained model
 def train_model(classifier, feature_vector_train, label, feature_vector_valid, valid_y, is_neural_net=False):
     classifier.fit(feature_vector_train, label)
     predictions = classifier.predict(feature_vector_valid)
@@ -457,6 +472,7 @@ def train_model(classifier, feature_vector_train, label, feature_vector_valid, v
         predictions = predictions.argmax(axis=-1)
     return [metrics.recall_score(valid_y, predictions, average='weighted'), metrics.accuracy_score(valid_y, predictions), metrics.f1_score(valid_y, predictions, average='weighted')]
 
+### Train the classifier
 def classify(file1, file2):
 ##file1 is the input file
 ##file2 is the outfile with extra column of political class (0:non-political; 1:political)
@@ -1008,7 +1024,7 @@ def classify(file1, file2):
 classify('./tpfc_2017_clean_stem.tsv', './tpfc_2017_pol.tsv')
 ```
 
-## 6. repeat above for each year, then combine all tpfc-rated political files
+## 6. Repeat above for each year, then combine all tpfc-rated political files
 ```
 df_2017 = pd.read_csv(r'tpfc_2017_pol.tsv', delimiter = '\t', error_bad_lines=False, header = None, names = ['url_rid','clean_url','parent_domain','tpfc_rating','year_month','share_without_clicks','shares','clicks','year','titleNblurb','political'])
 df_2018 = pd.read_csv(r'tpfc_2018_pol.tsv', delimiter = '\t', error_bad_lines=False, header = None, names = ['url_rid','clean_url','parent_domain','tpfc_rating','year_month','share_without_clicks','shares','clicks','year','titleNblurb','political'])
@@ -1019,7 +1035,7 @@ tpfc_pol = pd.concat(frames)
 tpfc_pol.to_csv(r'tpfc_pol.csv')
 ```
 
-## 7. select tpfc-ratled URLs with political_page_affinity (user political affinity group) = minus 2 for each year (of 2017, 2018, 2019, 2020 run separately iterated)
+## 7. Select tpfc-ratled URLs with political_page_affinity (user political affinity group) = minus 2 for each year (of 2017, 2018, 2019, 2020 run separately iterated)
 ```
 sql = f"""
 WITH US_URLs AS (
@@ -1050,7 +1066,7 @@ GROUP BY urlbd.url_rid
 dfneg2 = execute(sql)
 ```
 
-## 8. select tpfc-ratled URLs with political_page_affinity (user political affinity group) = minus 1
+## 8. Select tpfc-ratled URLs with political_page_affinity = -1
 ```
 sql = f"""
 WITH US_URLs AS (
@@ -1081,7 +1097,7 @@ GROUP BY urlbd.url_rid
 dfneg1 = execute(sql)
 ```
 
-## 9. select tpfc-ratled URLs with political_page_affinity (user political affinity group) = zero
+## 9. Select tpfc-ratled URLs with political_page_affinity = 0
 ```
 sql = f"""
 WITH US_URLs AS (
@@ -1112,7 +1128,7 @@ GROUP BY urlbd.url_rid
 dfzero = execute(sql)
 ```
 
-## 10. select tpfc-ratled URLs with political_page_affinity (user political affinity group) = plus 1
+## 10. Select tpfc-ratled URLs with political_page_affinity = +1
 ```
 sql = f"""
 WITH US_URLs AS (
@@ -1143,7 +1159,7 @@ GROUP BY urlbd.url_rid
 dfpos1 = execute(sql)
 ```
 
-## https://urldefense.com/v3/__http://11.select__;!!DLa72PTfQgg!MLe3jtaenb_GC6RMaN3bUo_O892Xch2Ko2ASCTjE6eKc6g5uPxPNiyJSrQkw0TvHZuN_4NjN0MS5xzE0Qbk$  tpfc-ratled URLs with political_page_affinity (user political affinity group) = plus 2
+## 11. Select tpfc-ratled URLs with political_page_affinity = +2
 ```
 sql = f"""
 WITH US_URLs AS (
@@ -1174,7 +1190,7 @@ GROUP BY urlbd.url_rid
 dfpos2 = execute(sql)
 ```
 
-## 12. combine all data with 5 user affinity scores and combine with politically classified data
+## 12. Combine all data with 5 user affinity scores and combine with politically classified data
 ```
 frames = [dfneg2, dfneg1, dfzero, dfpos1, dfpos2]
 df_affinity = pd.concat(frames)
@@ -1182,7 +1198,7 @@ df_pol = pd.read_csv(r'tpfc_pol.csv', delimiter = ',')
 result = pd.merge(df_affinity, df_pol, on='url_rid')
 ```
 
-## 13.filter and analyze only political URLs (for non-political content set political == 0)
+## 13. Filter and analyze only political URLs (for non-political content set political == 0)
 ```
 df = result[result['political'] == 1]
 df = pd.DataFrame({'count' : df.groupby('political_page_affinity').size(), 
@@ -1192,7 +1208,7 @@ df = pd.DataFrame({'count' : df.groupby('political_page_affinity').size(),
                   }).reset_index()
 ```
 
-## 14. filter and analyze only political URLs with fake news (for true news set tpfc_rating == ‘fact chekced as true’)
+## 14. Filter and analyze only political URLs with fake news (for true news set tpfc_rating == ‘fact chekced as true’)
 ```
 from numpy import sqrt
 from numpy import power
